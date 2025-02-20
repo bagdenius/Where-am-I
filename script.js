@@ -2,16 +2,14 @@
 // https://countries-api-836d.onrender.com/countries/
 
 const btn = document.querySelector('.btn-country');
+const errorsContainer = document.querySelector(`.errors`);
 const countriesContainer = document.querySelector('.countries');
 const currentCountryContainer = document.querySelector(`.country--current`);
 const neighbourCountriesContainer = document.querySelector(
   `.countries--neighbours`
 );
 
-function renderError(msg) {
-  // countriesContainer.innerHTML = ``;
-  countriesContainer.insertAdjacentText(`beforeend`, msg);
-}
+const renderError = msg => errorsContainer.insertAdjacentText(`beforeend`, msg);
 
 function renderCountry(data, container, className = ``) {
   const html = `
@@ -59,34 +57,39 @@ const getCountryData = countryCode =>
     `Problem with getting country`
   );
 
-async function whereAmI() {
-  try {
+function clear() {
+  errorsContainer.innerHTML =
     currentCountryContainer.innerHTML =
-      neighbourCountriesContainer.innerHTML = ``;
+    neighbourCountriesContainer.innerHTML =
+      ``;
+}
+
+async function whereAmI(e, countryCode) {
+  try {
+    clear();
     // Geolocation
     const geolocation = await getGeolocation();
     const { latitude, longitude } = geolocation.coords;
-
     // Reverse geocoding
     const geocode = await getGeocode(latitude, longitude);
-
     // Country data
-    const country = await getCountryData(geocode.countryCode);
+    const country = await getCountryData(
+      countryCode ? countryCode : geocode.countryCode
+    );
     const neighbourPromises = country.borders.map(
       async code => await getCountryData(code)
     );
     const neighbours = await Promise.all(neighbourPromises);
-
     // Rendering on page
     renderCountry(country, currentCountryContainer);
     neighbours.forEach(n =>
       renderCountry(n, neighbourCountriesContainer, `neighbour`)
     );
+    countriesContainer.style.opacity = 1;
   } catch (err) {
     console.error(err);
     renderError(`${err.message}`);
-  } finally {
-    countriesContainer.style.opacity = 1;
+    countriesContainer.style.opacity = 0;
   }
 }
 
